@@ -81,6 +81,8 @@ pub struct ChainSnapshot {
     pub transactions: Option<u32>,
     pub size_bytes: Option<u32>,
     pub hashrate: Option<f64>,
+    pub hashrate_sample_count: u32,
+    pub target_interval: u32,
     pub average_interval: Option<f64>,
     pub sample_count: u32,
     pub recent: Vec<Block>,
