@@ -1,0 +1,21 @@
+[workspace]
+members = ["packages/core", "apps/web"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.94"
+
+[workspace.dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.151", features = ["arbitrary_precision"] }
+tokio = { version = "=1.53.1", features = ["full", "test-util"] }
+reqwest = { version = "=0.13.4", default-features = false, features = ["json", "rustls"] }
+url = "=2.5.8"
+ts-rs = "=12.0.1"
+axum = "=0.8.9"
+tower-http = { version = "=0.7.1", features = ["fs", "set-header"] }
+tempfile = "=3.27.0"
+rust_decimal = "=1.43.0"
