@@ -23,7 +23,7 @@ The approved product is an original circular Knots chain dashboard for web and s
 - Repository started without product files. Existing local tool configuration is preserved and ignored.
 - Available: Node 24.13.0, Rust/Cargo 1.94.1, macOS Command Line Tools.
 - Docker daemon is stopped; no container build/start has been attempted.
-- GitHub currently lacks authentication for the intended pseudonymous publishing account. Public repository creation, pushes, and stacked PRs are blocked pending maintainer authentication.
+- Initial publication was blocked by missing authentication for the intended pseudonymous account. Authentication as `theSeattleUnfreeze` was verified on September 10, 2026, and the maintainer authorized repository creation, branch pushes, and stacked PRs. This resolves the source-publication gate, not the production signing or binary-release gates.
 - Apple/Windows signing and production updater identity/key/source are not configured. Public signed releases remain blocked.
 - No real Knots node has been contacted; live-node acceptance is pending.
 - Foundation: `cargo test --workspace` passed 9 tests; `cargo clippy --workspace --all-targets -- -D warnings` passed. Coverage currently includes config rejection/relative paths, monetary conversions, epoch boundaries, PoW sample boundaries, rollback/pre-activation RPC snapshots, request-ID/network mismatch, and HTTP host/origin/method boundaries.
@@ -60,7 +60,7 @@ The approved product is an original circular Knots chain dashboard for web and s
 | `feat/tauri-desktop` | `feat/shared-dashboard` | Standalone native host, settings, updates, packaging |
 | `feat/coordinated-releases` | `feat/tauri-desktop` | Coordinated builds, versioning, signatures, release gates |
 
-All branches are local until the intended GitHub account is authenticated. No remote PR URLs or successful publication are implied.
+Publish this stack bottom-up, with each PR targeting its immediate parent branch. Track current PR links and merge status in GitHub. Source-code publication does not imply that signed application releases or the remaining platform gates have passed.
 
 ## Final local review
 
