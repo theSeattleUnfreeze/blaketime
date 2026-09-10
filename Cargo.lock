@@ -385,6 +385,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "blaketime-release-verify"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "minisign-verify",
+]
+
+[[package]]
 name = "blaketime-web"
 version = "0.1.0"
 dependencies = [

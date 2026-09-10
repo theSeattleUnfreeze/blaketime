@@ -6,6 +6,8 @@ dist/
 *.local.json
 secrets/
 *.key
+*.p8
+*.pem
 *.p12
 *.pfx
 playwright-report/

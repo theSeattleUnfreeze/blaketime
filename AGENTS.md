@@ -16,3 +16,6 @@
 - macOS packaging uses Tauri's documented `CI=true` mode to skip Finder-only DMG layout automation. It does not skip signing or notarization. Production is not an E2E build.
 - After external formatting, verify edits reached disk with filesystem search/Git diff. IDE buffers can retain unsaved changes; never claim a build tested editor-only code.
 - Signing credentials, bundle identity, GitHub publication, and real-node verification are independent release gates. Do not publish unsigned development artifacts as trusted releases.
+- Release gates: `npm run release:check`, `npm test`, `node scripts/verify-production.mjs`, Compose config validation, and workflow Actionlint. Publication is opt-in and requires complete artifact/signature verification plus a protected environment reviewer.
+- The shared UI artifact is stamped with version/commit/digest. Release builds consume that artifact with `BLAKETIME_PREBUILT_UI=1`; never silently rebuild a different UI for a platform.
+- Node-only tooling tests run in Vitest's Node project; React tests run in its jsdom project. Do not run filesystem release helpers in a browser URL environment.

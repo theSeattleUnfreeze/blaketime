@@ -1,0 +1,32 @@
+services:
+  blaketime:
+    build:
+      context: .
+      target: local
+    ports:
+      - "127.0.0.1:3000:3000"
+    user: "${BLAKETIME_UID:-10001}:${BLAKETIME_GID:-10001}"
+    environment:
+      BLAKETIME_CONFIG: /run/blaketime/config.json
+    volumes:
+      - type: bind
+        source: ${BLAKETIME_CONFIG_PATH:-./blaketime.local.json}
+        target: /run/blaketime/config.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${BLAKETIME_SECRETS_DIR:-./secrets}
+        target: /run/secrets
+        read_only: true
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    restart: unless-stopped

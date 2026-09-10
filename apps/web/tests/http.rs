@@ -26,6 +26,14 @@ async fn host_origin_and_rpc_boundaries() {
         .await
         .unwrap();
     assert_eq!(snapshot.status(), 200);
+    let health = http
+        .get(format!("{url}/healthz"))
+        .header("host", "internal-probe")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(health.status(), 204);
+    assert!(health.text().await.unwrap().is_empty());
     assert!(snapshot.headers().contains_key("content-security-policy"));
     assert_eq!(
         http.get(format!("{url}/api/dashboard"))

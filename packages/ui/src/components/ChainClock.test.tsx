@@ -3,6 +3,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { ChainClock } from "./ChainClock";
 import { StatusBanner } from "./StatusBanner";
 afterEach(cleanup);
+it.each(["constructor", "toString", "__proto__"])("handles unknown error code %s safely", (code) => {
+  render(<StatusBanner snapshot={null} error={code} desktop={false} needsReload={false} />);
+  expect(screen.getByRole("status").textContent).toContain("Could not refresh the dashboard");
+});
 it("renders unavailable data without fabricated heights or blocks", () => {
   render(<ChainClock snapshot={null} now={0} />);
   expect(screen.getByTestId("block-height").textContent).toBe("—");

@@ -1,0 +1,10 @@
+[package]
+name = "blaketime-release-verify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+base64 = "=0.22.1"
+minisign-verify = "=0.2.5"
