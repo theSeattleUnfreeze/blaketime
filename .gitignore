@@ -1,0 +1,15 @@
+node_modules/
+target/
+dist/
+.devin/*.local.json
+.env*
+*.local.json
+secrets/
+*.key
+*.p12
+*.pfx
+playwright-report/
+test-results/
+coverage/
+apps/desktop/src-tauri/gen/
+.DS_Store
