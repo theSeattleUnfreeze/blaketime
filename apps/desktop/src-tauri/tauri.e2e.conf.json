@@ -1,0 +1,9 @@
+{
+  "identifier": "org.blaketime.desktop.e2e",
+  "app": {
+    "security": {
+      "capabilities": ["main", { "identifier": "e2e", "windows": ["main"], "permissions": ["wdio-webdriver:default"] }]
+    }
+  },
+  "bundle": { "active": false }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@blaketime/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "node ../../scripts/desktop-build.mjs",
+    "build:e2e": "node ../../scripts/desktop-build.mjs --debug --no-bundle --features e2e --config src-tauri/tauri.e2e.conf.json"
+  }
+}

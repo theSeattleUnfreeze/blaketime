@@ -20,6 +20,11 @@
     "build:ui": "npm run types:check && npm run build --workspace @blaketime/ui",
     "build:web": "cargo build --release --locked -p blaketime-web",
     "test:e2e": "playwright test",
+    "dev:ui": "npm run dev --workspace @blaketime/ui",
+    "desktop:dev": "npm run dev --workspace @blaketime/desktop",
+    "desktop:build": "npm run build --workspace @blaketime/desktop",
+    "desktop:build:e2e": "npm run build:e2e --workspace @blaketime/desktop",
+    "test:desktop": "node --test e2e/desktop/*.test.mjs",
     "start": "node scripts/start-web.mjs"
   },
   "devDependencies": {

@@ -1,0 +1,5 @@
+{
+  "identifier": "main",
+  "windows": ["main"],
+  "permissions": ["read-dashboard", "manage-local-settings", "manage-updates"]
+}

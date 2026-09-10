@@ -117,6 +117,30 @@ pub struct Peers {
     pub updated_at: u64,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum UpdatePhase {
+    Disabled,
+    Idle,
+    Checking,
+    Available,
+    Current,
+    Downloading,
+    Installing,
+    CheckFailed,
+    InstallFailed,
+    Unverified,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateStatus {
+    pub phase: UpdatePhase,
+    pub version: Option<String>,
+    pub progress: Option<f64>,
+    pub automatic: bool,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct Snapshot {

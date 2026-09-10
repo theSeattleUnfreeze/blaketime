@@ -12,6 +12,8 @@ fn main() {
         FeeEstimate::decl(&config),
         Peers::decl(&config),
         Snapshot::decl(&config),
+        UpdatePhase::decl(&config),
+        UpdateStatus::decl(&config),
     ] {
         println!("export {declaration}");
     }
