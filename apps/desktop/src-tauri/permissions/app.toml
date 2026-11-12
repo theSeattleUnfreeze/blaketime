@@ -1,0 +1,11 @@
+[[permission]]
+identifier = "read-dashboard"
+commands.allow = ["app_info", "dashboard", "check_connection"]
+
+[[permission]]
+identifier = "manage-local-settings"
+commands.allow = ["choose_config", "set_automatic_updates"]
+
+[[permission]]
+identifier = "manage-updates"
+commands.allow = ["update_status", "check_updates", "install_update"]

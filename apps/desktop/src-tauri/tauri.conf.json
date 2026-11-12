@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Blaketime",
+  "version": "../../../package.json",
+  "identifier": "org.blaketime.desktop",
+  "build": {
+    "beforeDevCommand": "npm --prefix ../.. run dev:ui",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "node ../../scripts/desktop-assets.mjs",
+    "frontendDist": "../../../dist/ui"
+  },
+  "app": {
+    "windows": [{ "label": "main", "create": false, "title": "Blaketime", "width": 1280, "height": 850, "minWidth": 360, "minHeight": 640, "theme": "Dark" }],
+    "security": {
+      "capabilities": ["main"],
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' data:; style-src 'self' 'unsafe-inline'; object-src 'none'; frame-src 'none'; base-uri 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "createUpdaterArtifacts": false,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "macOS": { "minimumSystemVersion": "13.0" },
+    "windows": { "nsis": { "installMode": "currentUser" }, "webviewInstallMode": { "type": "embedBootstrapper" } }
+  }
+}

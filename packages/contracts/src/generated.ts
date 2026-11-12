@@ -7,3 +7,5 @@ export type Mempool = { count: number, virtualBytes: number, memoryBytes: number
 export type FeeEstimate = { target: number, satsPerVbyte: number, updatedAt: number, };
 export type Peers = { count: number, updatedAt: number, };
 export type Snapshot = { state: ConnectionState, error: ErrorCode | null, label: string, network: string | null, updatedAt: number | null, chain: ChainSnapshot | null, mempool: Mempool | null, fees: Array<FeeEstimate>, peers: Peers | null, };
+export type UpdatePhase = "disabled" | "idle" | "checking" | "available" | "current" | "downloading" | "installing" | "checkFailed" | "installFailed" | "unverified";
+export type UpdateStatus = { phase: UpdatePhase, version: string | null, progress: number | null, automatic: boolean, };

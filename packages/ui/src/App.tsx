@@ -3,6 +3,7 @@ import { ChainClock } from "./components/ChainClock";
 import { MetricPanels } from "./components/MetricPanels";
 import { NodeSettings } from "./components/NodeSettings";
 import { StatusBanner } from "./components/StatusBanner";
+import { UpdateControls, UpdatePrompt } from "./components/UpdateControls";
 import { client } from "./transport";
 import {
   applyFreshness,
@@ -10,12 +11,14 @@ import {
   useDashboard,
 } from "./use-dashboard";
 import { useDisplay } from "./use-display";
+import { useUpdates } from "./use-updates";
 import { clockParts, timestamp } from "./format";
 import { t } from "./messages";
 export function App() {
   const { snapshot, info, error, refresh, needsReload, receivedAt } =
     useDashboard(client);
   const { preferences, setPreferences, now } = useDisplay();
+  const updates = useUpdates(info?.desktop ?? false);
   const [settings, setSettings] = useState(false);
   const clock = clockParts(now, preferences);
   const live = applyFreshness(snapshot, now, receivedAt);
@@ -107,8 +110,11 @@ export function App() {
           refresh={refresh}
           preferences={preferences}
           setPreferences={setPreferences}
-        />
+        >
+          {info?.desktop && <UpdateControls model={updates} />}
+        </NodeSettings>
       )}
+      {info?.desktop && <UpdatePrompt model={updates} />}
     </div>
   );
 }

@@ -12,4 +12,7 @@
 - Playwright is pinned to 1.60.0: 1.62.1 cannot initialize this machine's frozen macOS 14 WebKit (`PushAPIEnabled` protocol mismatch). Do not patch browser internals or treat this frozen build as current Safari coverage.
 - Code contains no new explanatory comments unless requested. UI English lives in the shared message catalog; preserve approved wording.
 - Production never includes test WebDriver hooks, remote Tauri capabilities, arbitrary file/RPC commands, or unsigned update bypasses.
+- Native gates: `npm run desktop:build:e2e && npm run test:desktop`, `npm run desktop:build`, `cargo clippy --workspace --all-targets --locked -- -D warnings`, and `cargo audit`. The native harness uses Node's test runner and Tauri's optional embedded W3C driver, not the vulnerable WebdriverIO JS dependency tree.
+- macOS packaging uses Tauri's documented `CI=true` mode to skip Finder-only DMG layout automation. It does not skip signing or notarization. Production is not an E2E build.
+- After external formatting, verify edits reached disk with filesystem search/Git diff. IDE buffers can retain unsaved changes; never claim a build tested editor-only code.
 - Signing credentials, bundle identity, GitHub publication, and real-node verification are independent release gates. Do not publish unsigned development artifacts as trusted releases.
