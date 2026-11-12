@@ -21,13 +21,14 @@
     "release:version": "node scripts/version.mjs",
     "release:check": "node scripts/check-version.mjs",
     "release:preflight": "node scripts/release-preflight.mjs",
-    "build:web": "cargo build --release --locked -p blaketime-web",
+    "build:web": "node scripts/build-web.mjs",
     "test:e2e": "playwright test",
     "dev:ui": "npm run dev --workspace @blaketime/ui",
     "desktop:dev": "npm run dev --workspace @blaketime/desktop",
     "desktop:build": "npm run build --workspace @blaketime/desktop",
     "desktop:build:e2e": "npm run build:e2e --workspace @blaketime/desktop",
     "test:desktop": "node --test e2e/desktop/*.test.mjs",
+    "config:sync": "node scripts/sync-env-config.mjs",
     "start": "node scripts/start-web.mjs"
   },
   "devDependencies": {

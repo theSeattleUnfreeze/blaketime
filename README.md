@@ -37,22 +37,30 @@ Password-file authentication:
 
 Relative credential paths resolve from the configuration file's directory. Never place credentials in the RPC URL. `main`, `testnet4`, and `regtest` are supported network profiles; regtest also requires an explicit `activationHeight` matching the node. Mainnet/testnet4 metadata is checked against the supported Knots baseline, not inferred from a node's name.
 
-Configuration files are trusted inputs: review endpoint and credential-file references before selecting one. Do not import untrusted third-party configurations. Remote RPC should use TLS or a trusted private tunnel; `allowInsecureRpc` is an explicit opt-in for a trusted private HTTP connection, not a TLS-verification bypass.
+Configuration files are trusted inputs: review endpoint and credential-file references before selecting one. Do not import untrusted third-party configurations. Remote RPC should use TLS or a trusted private tunnel; `allowInsecureRpc` is an explicit opt-in for a trusted private HTTP connection. `allowInsecureTls` (or `RPC_TLS_INSECURE=1`) is a separate opt-in when a trusted LAN certificate fails rustls checks.
 
 Use dedicated read-only RPC permissions where the node supports them. The app calls only `getblockchaininfo`, `getblockhash`, `getdeploymentinfo`, `getblockheader`, `getblock`, `getblockstats`, `getnetworkinfo`, `getmempoolinfo`, `estimatesmartfee`, and `getnetworkhashps`.
+
+Operator guides:
+
+- [Self-hosted setup](docs/self-hosted.md) — StartOS/LAN Knots RPC, password files, Scoop vs Blaketime, live-node checklist
+- [Hosted deployment (proposed)](docs/hosted.md) — Vercel UI + operator collector cache; not implemented yet
+
+Until the review stack merges, check out the tip branch (`feat/coordinated-releases`) for a runnable tree; `main` is the baseline only. Install the Node version in `.node-version` before `npm ci`.
 
 ## Run the web app locally
 
 Building from source requires Node 24 and the pinned Rust toolchain.
 
 ```sh
+cp .env.example .env   # set RPC_HOST, RPC_USER, RPC_PASS
 npm ci
 npm run build:ui
 npm run build:web
-BLAKETIME_CONFIG=./blaketime.local.json npm start
+npm start
 ```
 
-Open http://localhost:3000. The compiled `target/release/blaketime-web` binary can also be run directly without Node.js. If no configuration is supplied, the app displays its unconfigured state and does not contact a node.
+`npm start` syncs `.env` into gitignored `blaketime.local.json` and `secrets/rpc-password`, then runs the release binary. You can still set `BLAKETIME_CONFIG` explicitly or run `npm run config:sync` alone. Open http://localhost:3000. The compiled `target/release/blaketime-web` binary can also be run directly without Node.js. If no configuration is supplied, the app displays its unconfigured state and does not contact a node.
 
 ## Docker
 

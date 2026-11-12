@@ -5,7 +5,8 @@
     "network": "testnet4",
     "label": "Knots node",
     "auth": { "type": "cookie", "file": "/path/to/testnet4/.cookie" },
-    "allowInsecureRpc": false
+    "allowInsecureRpc": false,
+    "allowInsecureTls": false
   },
   "server": {
     "bind": "127.0.0.1:3000",
