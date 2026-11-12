@@ -42,10 +42,11 @@ impl Method {
     }
 }
 
+#[derive(Clone)]
 pub struct RpcClient {
     pub config: NodeConfig,
     http: reqwest::Client,
-    id: AtomicU64,
+    id: Arc<AtomicU64>,
     limit: Arc<Semaphore>,
 }
 impl RpcClient {
@@ -61,7 +62,7 @@ impl RpcClient {
         Ok(Self {
             config,
             http,
-            id: AtomicU64::new(0),
+            id: Arc::new(AtomicU64::new(0)),
             limit: Arc::new(Semaphore::new(2)),
         })
     }

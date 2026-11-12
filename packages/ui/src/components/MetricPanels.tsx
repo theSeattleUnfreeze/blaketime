@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Snapshot } from "@blaketime/contracts";
-import { duration, number, scaled } from "../format";
+import { duration, freshSample, number, scaled } from "../format";
 import { t, type MessageKey } from "../messages";
 function Metric({
   label,
@@ -37,17 +37,20 @@ function Panel({
     </section>
   );
 }
-export function MetricPanels({
-  snapshot,
-  now,
-}: {
-  snapshot: Snapshot | null;
-  now: number;
-}) {
+export function MetricPanels({ snapshot }: { snapshot: Snapshot | null }) {
   const chain = snapshot?.chain;
-  const mempool = snapshot?.mempool;
+  const reference = snapshot?.updatedAt;
+  const mempool =
+    snapshot?.mempool && freshSample(snapshot.mempool.updatedAt, reference, 60)
+      ? snapshot.mempool
+      : null;
+  const peers =
+    snapshot?.peers && freshSample(snapshot.peers.updatedAt, reference, 180)
+      ? snapshot.peers
+      : null;
   const fees =
-    snapshot?.fees.filter((v) => now / 1000 - v.updatedAt < 90) ?? [];
+    snapshot?.fees.filter((v) => freshSample(v.updatedAt, reference, 120)) ??
+    [];
   const memory =
     mempool && mempool.memoryLimit > 0
       ? Math.min(1, mempool.memoryBytes / mempool.memoryLimit)
@@ -149,10 +152,7 @@ export function MetricPanels({
       <div className="bottom-panels">
         <Panel title="chain.label">
           <dl>
-            <Metric
-              label="metrics.peers"
-              value={number(snapshot?.peers?.count)}
-            />
+            <Metric label="metrics.peers" value={number(peers?.count)} />
             <Metric
               label="chain.pow"
               value={

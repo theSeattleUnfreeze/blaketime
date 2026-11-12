@@ -89,14 +89,14 @@ export function ChainClock({
         <text className="ring-label">
           <textPath href={`#${id}-outer`} startOffset="1%">
             {t("clock.halvingProgress")}{" "}
-            {chain ? percent(chain.halvingProgress) : ""}
+            {chain ? percent(chain.halvingProgress, 2) : ""}
           </textPath>
         </text>
         <text className="ring-label">
           <textPath href={`#${id}-middle`} startOffset="1%">
             {t("clock.difficultyPeriod")}{" "}
             {chain?.retargetProgress != null
-              ? percent(chain.retargetProgress)
+              ? percent(chain.retargetProgress, 2)
               : ""}
           </textPath>
         </text>
@@ -157,7 +157,7 @@ export function ChainClock({
           <span>
             {number(
               chain?.sizeBytes == null ? null : chain.sizeBytes / 1000000,
-              2,
+              3,
             )}{" "}
             <small>MB</small>
           </span>
@@ -189,7 +189,7 @@ export function ChainClock({
           {t("clock.ringProgress", {
             label: t("clock.halvingProgress"),
             percent: chain
-              ? percent(chain.halvingProgress)
+              ? percent(chain.halvingProgress, 2)
               : t("metrics.unavailable"),
           })}
         </p>
@@ -198,7 +198,7 @@ export function ChainClock({
             label: t("clock.difficultyPeriod"),
             percent:
               chain?.retargetProgress != null
-                ? percent(chain.retargetProgress)
+                ? percent(chain.retargetProgress, 2)
                 : t("metrics.unavailable"),
           })}
         </p>
