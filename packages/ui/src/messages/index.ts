@@ -22,7 +22,7 @@ const errors: Record<ErrorCode, MessageKey> = {
 };
 export function errorText(code: unknown) {
   return t(
-    typeof code === "string" && code in errors
+    typeof code === "string" && Object.hasOwn(errors, code)
       ? errors[code as ErrorCode]
       : "errors.app",
   );

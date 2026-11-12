@@ -1,0 +1,59 @@
+name: Shared Verification
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+    outputs:
+      version:
+        value: ${{ jobs.verify.outputs.version }}
+      commit:
+        value: ${{ jobs.verify.outputs.commit }}
+      uiDigest:
+        value: ${{ jobs.verify.outputs.uiDigest }}
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.ui.outputs.version }}
+      commit: ${{ steps.ui.outputs.commit }}
+      uiDigest: ${{ steps.ui.outputs.uiDigest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: rustup show active-toolchain
+      - run: npm ci --registry=https://registry.npmjs.org
+      - run: npm run release:check
+      - run: npm run types:check && npm run typecheck && npm run lint
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked -p blaketime-core -p blaketime-web -p blaketime-release-verify --all-targets -- -D warnings
+      - run: cargo test --locked -p blaketime-core -p blaketime-web -p blaketime-release-verify
+      - run: npm test
+      - run: npm audit --registry=https://registry.npmjs.org
+      - run: cargo install cargo-audit --version 0.22.2 --locked && cargo audit
+      - run: npm run build:ui
+        id: ui
+      - run: npm run build:web
+      - run: npm exec playwright -- install --with-deps chromium webkit
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: shared-ui
+          path: dist/ui
+          if-no-files-found: error
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: failure()
+        with:
+          name: web-test-failures
+          path: test-results
+          if-no-files-found: ignore

@@ -1,0 +1,211 @@
+name: Coordinated Release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing reviewed release tag (vX.Y.Z)
+        required: true
+        type: string
+      publish:
+        description: Publish after protected-environment approval
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: blaketime-release
+  cancel-in-progress: false
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+    with:
+      ref: ${{ inputs.tag }}
+  desktop:
+    needs: verify
+    environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: darwin-aarch64
+            triple: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: darwin-x86_64
+            triple: x86_64-apple-darwin
+          - runner: windows-2022
+            target: windows-x86_64
+            triple: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.runner }}
+    env:
+      BLAKETIME_RELEASE: "1"
+      BLAKETIME_RELEASE_TAG: ${{ inputs.tag }}
+      BLAKETIME_PREBUILT_UI: "1"
+      BLAKETIME_COMMIT: ${{ needs.verify.outputs.commit }}
+      BLAKETIME_UPDATE_KEY: ${{ vars.BLAKETIME_UPDATE_KEY }}
+      BLAKETIME_UPDATE_URL: https://github.com/${{ github.repository }}/releases/latest/download/latest.json
+      BLAKETIME_SIGNING_READY: ${{ vars.BLAKETIME_SIGNING_READY }}
+      BLAKETIME_INSTALL_TESTS_VERSION: ${{ vars.BLAKETIME_INSTALL_TESTS_VERSION }}
+      BLAKETIME_BUNDLE_ID: ${{ vars.BLAKETIME_BUNDLE_ID }}
+      BLAKETIME_WINDOWS_SIGN_COMMAND: ${{ vars.BLAKETIME_WINDOWS_SIGN_COMMAND }}
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify trusted tag before accessing signing material
+        shell: bash
+        run: |
+          [[ "$BLAKETIME_RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$BLAKETIME_COMMIT"
+          git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: rustup show active-toolchain
+      - run: npm ci --registry=https://registry.npmjs.org
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: shared-ui
+          path: dist/ui
+      - name: Native verification without release credentials
+        shell: bash
+        env:
+          BLAKETIME_RELEASE: "0"
+          BLAKETIME_UPDATE_KEY: ""
+          BLAKETIME_UPDATE_URL: ""
+        run: |
+          cargo test --workspace --locked
+          npm run desktop:build:e2e
+          npm run test:desktop
+      - name: Materialize notarization key in runner temp
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; import path from 'node:path'; const key=path.join(process.env.RUNNER_TEMP,'blaketime-notary.p8'); if(!process.env.APPLE_API_PRIVATE_KEY) throw Error('missing notarization key'); fs.writeFileSync(key,Buffer.from(process.env.APPLE_API_PRIVATE_KEY,'base64'),{mode:0o600}); fs.appendFileSync(process.env.GITHUB_ENV,'APPLE_API_KEY_PATH='+key+'\n');"
+      - name: Signing preflight
+        run: npm run release:preflight -- ${{ matrix.target }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_CERTIFICATE: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER || '' }}
+          APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
+      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
+        with:
+          projectPath: apps/desktop
+          args: --target ${{ matrix.triple }} --config ../../dist/tauri-release.json
+          uploadUpdaterJson: false
+          uploadWorkflowArtifacts: false
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_CERTIFICATE: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_API_ISSUER: ${{ runner.os == 'macOS' && secrets.APPLE_API_ISSUER || '' }}
+          APPLE_API_KEY: ${{ runner.os == 'macOS' && secrets.APPLE_API_KEY || '' }}
+          AZURE_CLIENT_ID: ${{ runner.os == 'Windows' && secrets.AZURE_CLIENT_ID || '' }}
+          AZURE_TENANT_ID: ${{ runner.os == 'Windows' && secrets.AZURE_TENANT_ID || '' }}
+          AZURE_CLIENT_SECRET: ${{ runner.os == 'Windows' && secrets.AZURE_CLIENT_SECRET || '' }}
+      - run: node scripts/collect-desktop.mjs ${{ matrix.target }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/release/${{ matrix.target }}
+          if-no-files-found: error
+  web:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    env:
+      BLAKETIME_COMMIT: ${{ needs.verify.outputs.commit }}
+      BLAKETIME_VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: shared-ui
+          path: dist/ui
+      - name: Build and save versioned web image
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}:$BLAKETIME_VERSION-$ARCH"
+          docker build --target release --build-arg BLAKETIME_COMMIT="$BLAKETIME_COMMIT" --build-arg BLAKETIME_VERSION="$BLAKETIME_VERSION" --build-arg BLAKETIME_SOURCE="https://github.com/$GITHUB_REPOSITORY" --tag "$IMAGE" .
+          CID=$(docker run -d -p 127.0.0.1:4174:3000 -e BLAKETIME_ALLOWED_HOSTS=127.0.0.1:4174 "$IMAGE")
+          trap 'docker rm -f "$CID"' EXIT
+          for attempt in {1..30}; do curl --fail --silent http://127.0.0.1:4174/healthz && break; sleep 1; done
+          curl --fail --silent http://127.0.0.1:4174/api/app | node --input-type=module -e "let data=''; for await (const chunk of process.stdin) data+=chunk; const app=JSON.parse(data); if(app.version!==process.env.BLAKETIME_VERSION || app.commit!==process.env.BLAKETIME_COMMIT) process.exit(1);"
+          test "$(docker exec "$CID" id -u)" != 0
+          mkdir -p "dist/release/linux-$ARCH"
+          docker save --output "dist/release/linux-$ARCH/Blaketime_${BLAKETIME_VERSION}_linux-$ARCH.tar" "$IMAGE"
+      - run: node scripts/collect-web.mjs ${{ matrix.arch }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: dist/release/linux-${{ matrix.arch }}
+          compression-level: 0
+          if-no-files-found: error
+  finalize:
+    needs: [verify, desktop, web]
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: write
+      packages: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BLAKETIME_RELEASE_TAG: ${{ inputs.tag }}
+      BLAKETIME_UPDATE_KEY: ${{ vars.BLAKETIME_UPDATE_KEY }}
+      BLAKETIME_SIGNING_READY: ${{ vars.BLAKETIME_SIGNING_READY }}
+      BLAKETIME_INSTALL_TESTS_VERSION: ${{ vars.BLAKETIME_INSTALL_TESTS_VERSION }}
+      BLAKETIME_BUNDLE_ID: ${{ vars.BLAKETIME_BUNDLE_ID }}
+      BLAKETIME_PUBLISH_APPROVED: ${{ inputs.publish && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+      - run: rustup show active-toolchain
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: release-*
+          path: dist/staged
+      - run: node scripts/finalize-release.mjs
+      - name: Authenticate registry for approved publication
+        if: inputs.publish
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+        run: printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
+      - run: node scripts/finalize-release.mjs --publish
+        if: inputs.publish
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-metadata
+          path: dist/final
+          if-no-files-found: error

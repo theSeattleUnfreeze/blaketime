@@ -29,10 +29,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         listener,
         blaketime_web::app(service.clone(), server, assets),
     )
-    .with_graceful_shutdown(async {
-        let _ = tokio::signal::ctrl_c().await;
-    })
+    .with_graceful_shutdown(shutdown())
     .await?;
     service.shutdown();
     Ok(())
+}
+
+async fn shutdown() {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("failed to register termination signal");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => (),
+            _ = terminate.recv() => (),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
 }

@@ -23,7 +23,7 @@ The approved product is an original circular Knots chain dashboard for web and s
 - Repository started without product files. Existing local tool configuration is preserved and ignored.
 - Available: Node 24.13.0, Rust/Cargo 1.94.1, macOS Command Line Tools.
 - Docker daemon is stopped; no container build/start has been attempted.
-- GitHub currently lacks authentication for the intended pseudonymous publishing account. Public repository creation, pushes, and stacked PRs are blocked pending maintainer authentication.
+- Initial publication was blocked by missing authentication for the intended pseudonymous account. Authentication as `theSeattleUnfreeze` was verified on September 10, 2026, and the maintainer authorized repository creation, branch pushes, and stacked PRs. This resolves the source-publication gate, not the production signing or binary-release gates.
 - Apple/Windows signing and production updater identity/key/source are not configured. Public signed releases remain blocked.
 - No real Knots node has been contacted; live-node acceptance is pending.
 - Foundation: `cargo test --workspace` passed 9 tests; `cargo clippy --workspace --all-targets -- -D warnings` passed. Coverage currently includes config rejection/relative paths, monetary conversions, epoch boundaries, PoW sample boundaries, rollback/pre-activation RPC snapshots, request-ID/network mismatch, and HTTP host/origin/method boundaries.
@@ -42,12 +42,28 @@ The approved product is an original circular Knots chain dashboard for web and s
 - `cargo audit` returned no blocking advisories and seven unsuppressed warnings: proc-macro-error and UNIC crates are unmaintained; glib has an unsoundness warning. Target-filtered Cargo trees show glib absent from macOS/Windows desktop and the Linux web server. Track upstream maintenance; no audit-ignore policy was added.
 - Configuration files are trusted operator inputs: they authorize the endpoint and credential-file references they contain. Do not import third-party configurations without reviewing them; use dedicated read-only RPC credentials where supported.
 - Still unverified: Windows and Intel Mac execution/installation, real signed N-to-N+1 installation, production signing, and live Knots RPC. The local native E2E does not automate the OS file-picker selection itself; config loading and persistence have separate Rust tests.
+- Release implementation: one version command updates npm and Cargo metadata; shared UI builds are inventoried and hashed; native and web artifacts carry the same version/commit/UI digest. Finalization requires every platform, checksums, platform signing verification, and independently verified Tauri signatures. It refuses published-release replacement and mismatched draft assets.
+- Release tests: isolated version-bump integration, complete/mismatched platform inventories, UI tampering/symlink rejection, and real Tauri-generated signature/tamper verification passed. No production signing key was generated or read. GitHub workflow syntax passed Actionlint 1.7.12 (download checksum verified).
+- Container definition uses digest-pinned Node/Rust/Debian build bases, a non-root Rust-only runtime, read-only mounts/root filesystem in Compose, and process health checks. SIGTERM shutdown and health probes have web-host coverage. Compose config validation passed; image build/runtime tests remain blocked by the stopped Docker daemon.
+- Workflow behavior: candidates build without publication; public promotion requires a reviewed tag on main, protected-environment reviewer approval, signing readiness, and signed-installation acceptance for that exact version. First GHCR publication may need owner action to make the package public; promotion checks anonymous pull access. Signing-provider setup, third-party notices review, and actual cloud workflow execution remain release handoff items.
+- Production executable inspection passed: the locally built native binary contains no test-driver or test-config markers. The native E2E build is separate and is never a release artifact.
+- Final review found an unknown-error edge case: JavaScript prototype names could be mistaken for known error codes and crash the error banner. Added three failing regression cases and changed the lookup to own properties only; these now form part of the final test gate.
+- Long-session review: a tip that moved during collection used to discard the snapshot, so a fast sync never published chain data. Each poll now runs in its own task, and the stored time is the publish time. The browser bounds each dashboard read at 12 seconds, resumes on visibility, focus, pageshow, and online, and shows stale after 45 seconds without a new snapshot. Fee, mempool, and peer ages are compared with the snapshot clock. Block age past one day keeps minutes; last-updated follows the selected zone and includes the date on another day; halving and retarget labels use two decimal percents; scaled values continue through yotta and roll over at 1000. Desktop update status uses the same deadline and slows to 15 seconds when idle.
+- Verification of that review, on this Linux agent: `cargo test --locked -p blaketime-core -p blaketime-web` passed 11 tests. Vitest passed 21 tests across the UI, deadline, and release suites after the version fixture kept `rust-toolchain.toml` so its Cargo invocation uses the pinned toolchain. Chromium ran the 4 web scenarios against the release server and the fake RPC fixture, including tip changes, a same-height replacement, preferences, and wrong-network recovery. WebKit did not launch here because the host is missing its system libraries. Desktop native execution and a live Knots node were not rerun.
 - A planned gate is not a passing result.
 
-## Planned stack
+## Stack structure
 
-1. Bootstrap (license, project rules, engineering record).
-2. Shared core, generated contracts, web HTTP boundary.
-3. Shared circular dashboard and browser verification.
-4. Native Tauri configuration, lifecycle, updates, and packaging.
-5. Version/build/release automation and final validation.
+| Branch | PR base | Concern |
+| --- | --- | --- |
+| `main` | Initial repository baseline | License, project rules, engineering record |
+| `feat/shared-core` | `main` | Shared Rust service, contracts, HTTP boundary |
+| `feat/shared-dashboard` | `feat/shared-core` | Shared circular dashboard and browser verification |
+| `feat/tauri-desktop` | `feat/shared-dashboard` | Standalone native host, settings, updates, packaging |
+| `feat/coordinated-releases` | `feat/tauri-desktop` | Coordinated builds, versioning, signatures, release gates |
+
+Publish this stack bottom-up, with each PR targeting its immediate parent branch. Track current PR links and merge status in GitHub. Source-code publication does not imply that signed application releases or the remaining platform gates have passed.
+
+## Final local review
+
+The local review covered React, Rust/HTTP/IPC security boundaries, and build/release orchestration. No Next.js, Convex, Clerk, or inherited application design-system rules apply to this greenfield project. The unknown-error prototype lookup was reproduced with three failing tests and fixed. Final unit coverage is 16 JavaScript/tooling tests and 12 Rust tests, with 8 web browser scenarios and the native macOS scenario exercised separately. Publication/OS/signing gaps remain the explicit release gates above, not passing results.

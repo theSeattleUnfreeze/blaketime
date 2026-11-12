@@ -44,6 +44,11 @@ async fn check(State(service): State<Arc<NodeService>>) -> Response {
     }
 }
 async fn security(State(config): State<ServerConfig>, request: Request, next: Next) -> Response {
+    if request.uri().path() == "/healthz"
+        && (request.method() == "GET" || request.method() == "HEAD")
+    {
+        return next.run(request).await;
+    }
     let host = request
         .headers()
         .get("host")
