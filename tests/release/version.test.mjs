@@ -28,6 +28,10 @@ it("bumps an isolated workspace without committing or touching the real project"
         join(root, "scripts", name),
         join(directory, "scripts", name),
       );
+    await copyFile(
+      join(root, "rust-toolchain.toml"),
+      join(directory, "rust-toolchain.toml"),
+    );
     await writeFile(
       join(directory, "package.json"),
       JSON.stringify({
