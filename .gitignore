@@ -2,7 +2,9 @@ node_modules/
 target/
 dist/
 .devin/*.local.json
-.env*
+.env
+.env.*
+!.env.example
 *.local.json
 secrets/
 *.key

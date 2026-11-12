@@ -4,6 +4,7 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::{
+    net::{SocketAddr, ToSocketAddrs},
     sync::{
         Arc,
         atomic::{AtomicU64, Ordering},
@@ -11,6 +12,7 @@ use std::{
     time::Duration,
 };
 use tokio::sync::Semaphore;
+use url::Url;
 
 #[derive(Clone, Copy)]
 pub enum Method {
@@ -49,16 +51,34 @@ pub struct RpcClient {
     id: Arc<AtomicU64>,
     limit: Arc<Semaphore>,
 }
+fn prefer_ipv4(host: &str, port: u16) -> Option<SocketAddr> {
+    let addrs = (host, port).to_socket_addrs().ok()?.collect::<Vec<_>>();
+    addrs
+        .iter()
+        .copied()
+        .find(SocketAddr::is_ipv4)
+        .or_else(|| addrs.into_iter().next())
+}
+
 impl RpcClient {
     pub fn new(config: NodeConfig) -> Result<Self, ErrorCode> {
-        let http = reqwest::Client::builder()
+        let mut builder = reqwest::Client::builder()
             .no_proxy()
             .redirect(reqwest::redirect::Policy::none())
             .connect_timeout(Duration::from_secs(4))
             .timeout(Duration::from_secs(8))
-            .user_agent(concat!("Blaketime/", env!("CARGO_PKG_VERSION")))
-            .build()
-            .map_err(|_| ErrorCode::InvalidConfig)?;
+            .danger_accept_invalid_certs(config.allow_insecure_tls)
+            .user_agent(concat!("Blaketime/", env!("CARGO_PKG_VERSION")));
+        // mDNS/.local hosts often publish AAAA records that do not serve RPC.
+        // Pin the first IPv4 address when available so TLS still uses the hostname.
+        if let Ok(url) = Url::parse(&config.url)
+            && let Some(host) = url.host_str()
+            && let Some(port) = url.port_or_known_default()
+            && let Some(addr) = prefer_ipv4(host, port)
+        {
+            builder = builder.resolve(host, addr);
+        }
+        let http = builder.build().map_err(|_| ErrorCode::InvalidConfig)?;
         Ok(Self {
             config,
             http,

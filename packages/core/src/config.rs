@@ -15,6 +15,8 @@ pub struct NodeConfig {
     pub auth: Auth,
     #[serde(default)]
     pub allow_insecure_rpc: bool,
+    #[serde(default)]
+    pub allow_insecure_tls: bool,
     pub activation_height: Option<u32>,
 }
 

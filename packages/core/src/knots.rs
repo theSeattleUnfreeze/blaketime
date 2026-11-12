@@ -19,6 +19,7 @@ struct Header {
     hash: String,
     height: u32,
     time: i64,
+    #[serde(alias = "difficulty_blake2b")]
     difficulty: f64,
     header_version: u32,
     previousblockhash: Option<String>,
