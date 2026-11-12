@@ -201,6 +201,8 @@ pub async fn collect(
             }),
             size_bytes: block.as_ref().and_then(|v| integer(v, "size")),
             hashrate,
+            hashrate_sample_count: if hashrate.is_some() { window } else { 0 },
+            target_interval: crate::network_profiles::TARGET_INTERVAL,
             average_interval,
             sample_count,
             recent,

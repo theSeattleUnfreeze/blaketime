@@ -1,5 +1,7 @@
 use crate::{config::NodeConfig, contracts::ErrorCode};
 
+pub const TARGET_INTERVAL: u32 = 600;
+
 pub struct Profile {
     pub genesis: &'static str,
     pub activation: u32,

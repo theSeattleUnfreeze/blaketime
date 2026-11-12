@@ -28,7 +28,12 @@ The approved product is an original circular Knots chain dashboard for web and s
 - No real Knots node has been contacted; live-node acceptance is pending.
 - Foundation: `cargo test --workspace` passed 9 tests; `cargo clippy --workspace --all-targets -- -D warnings` passed. Coverage currently includes config rejection/relative paths, monetary conversions, epoch boundaries, PoW sample boundaries, rollback/pre-activation RPC snapshots, request-ID/network mismatch, and HTTP host/origin/method boundaries.
 - `npm audit` against the HTTPS public registry reported zero vulnerabilities after installation. jsdom 30 required a newer Node minor; selected compatible jsdom 27.4.0 instead. Direct dependency release dates were checked before installation. Transitive dependencies remain lockfile-pinned and need ongoing audit.
-- Workspace frontend commands are scaffolded in the foundation; their UI tests/build land in the next stack slice. A planned gate is not a passing result.
+- Shared dashboard: original responsive SVG rings, live block/date display, node metrics, accessible native HTML settings dialog, preferences, safe errors, and HTTP/Tauri transport adapters are implemented. Mock data is confined to test fixtures.
+- UI verification: TypeScript, ESLint, 5 Vitest tests, Vite production build, and Rust release web build passed. Chromium and WebKit E2E each passed all 4 scenarios (8 total) against the real Rust host and a fake RPC server. Final per-slice reruns are recorded through commits.
+- Browser tooling correction: Playwright 1.62.1 failed before app navigation because its PushAPIEnabled protocol setting is unsupported by macOS 14's frozen WebKit. Verified that 1.60.0 lacks that unsupported setting, pinned it, and reran both engines successfully. This is frozen WebKit coverage, not a claim about latest Safari.
+- Visual captures were reviewed at desktop and 390px mobile width. The clock uses container-relative typography; desktop height is bounded while mobile panels stack. Screenshots are generated test artifacts, not committed reference artwork.
+- Corrected the hashrate caption to show its own RPC sample count (up to 120), distinct from the average-interval sample (up to 144). Target interval now comes from the Rust profile rather than separate UI constants.
+- A planned gate is not a passing result.
 
 ## Planned stack
 

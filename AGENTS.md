@@ -8,6 +8,8 @@
 - Work on topic branches; stacked PRs target their immediate parent. Preserve unrelated local changes. Do not rewrite history or force-push without explicit approval.
 - Keep ENGINEERING.md current with assumptions, deviations, evidence, and blocked acceptance gates. No invented test results.
 - Node 24 and pinned Rust are build tools; no Node runtime ships in production. Use lockfiles and maintained dependency versions at least seven days old.
+- Local web gates: `npm run types:check`, `npm run typecheck`, `npm run lint`, `npm test`, `cargo test --workspace --locked`, `npm run build:ui`, `npm run build:web`, `npm run test:e2e`. E2E uses a temporary loopback fake node, never a public RPC.
+- Playwright is pinned to 1.60.0: 1.62.1 cannot initialize this machine's frozen macOS 14 WebKit (`PushAPIEnabled` protocol mismatch). Do not patch browser internals or treat this frozen build as current Safari coverage.
 - Code contains no new explanatory comments unless requested. UI English lives in the shared message catalog; preserve approved wording.
 - Production never includes test WebDriver hooks, remote Tauri capabilities, arbitrary file/RPC commands, or unsigned update bypasses.
 - Signing credentials, bundle identity, GitHub publication, and real-node verification are independent release gates. Do not publish unsigned development artifacts as trusted releases.
