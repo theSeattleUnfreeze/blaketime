@@ -15,6 +15,7 @@ use std::sync::{
 struct Fake {
     tip: Arc<AtomicU32>,
     mode: Arc<AtomicU32>,
+    chain_calls: Arc<AtomicU32>,
 }
 async fn handler(State(fake): State<Fake>, Json(request): Json<Value>) -> Json<Value> {
     let tip = fake.tip.load(Ordering::Relaxed);
@@ -23,7 +24,11 @@ async fn handler(State(fake): State<Fake>, Json(request): Json<Value>) -> Json<V
     let method = request["method"].as_str().unwrap();
     let result = match method {
         "getblockchaininfo" => {
-            json!({"chain":if mode==1 {"main"} else {"testnet4"},"blocks":tip,"bestblockhash":hash(tip),"initialblockdownload":false})
+            let mut height = tip;
+            if mode == 4 && fake.chain_calls.fetch_add(1, Ordering::Relaxed) > 0 {
+                height = tip.saturating_add(1);
+            }
+            json!({"chain":if mode==1 {"main"} else {"testnet4"},"blocks":height,"bestblockhash":hash(height),"initialblockdownload":false})
         }
         "getblockhash" => json!("00000000da84f2bafbbc53dee25a72ae507ff4914b867c565be350b0da8bf043"),
         "getdeploymentinfo" => {
@@ -74,6 +79,7 @@ async fn fixture() -> (
     let fake = Fake {
         tip: Arc::new(AtomicU32::new(150310)),
         mode: Arc::new(AtomicU32::new(0)),
+        chain_calls: Arc::new(AtomicU32::new(0)),
     };
     let server = Router::new()
         .route("/", post(handler))
@@ -108,6 +114,20 @@ async fn snapshot_fork_sampling_pruning_and_rollback() {
     fake.tip.store(150307, Ordering::Relaxed);
     let before = collect(&rpc, &fork, 201).await.unwrap();
     assert_eq!(before.chain.unwrap().tip.header_version, 0);
+    task.abort();
+}
+#[tokio::test]
+async fn publishes_the_chain_it_read_when_the_tip_advances() {
+    let (rpc, fake, _dir, task) = fixture().await;
+    fake.mode.store(4, Ordering::Relaxed);
+    let snapshot = collect(&rpc, &Snapshot::empty(), 100).await.unwrap();
+    let chain = snapshot.chain.as_ref().unwrap();
+    assert_eq!(chain.tip.height, 150310);
+    assert_eq!(chain.tip.hash, format!("{:064x}", 150310));
+    assert_eq!(
+        snapshot.state,
+        blaketime_core::contracts::ConnectionState::Connected
+    );
     task.abort();
 }
 #[tokio::test]

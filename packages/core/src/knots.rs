@@ -254,10 +254,10 @@ pub async fn collect(
         }
     }
     let final_info: ChainInfo = decode(client.call(Method::ChainInfo, json!([])).await?)?;
-    if final_info.bestblockhash != info.bestblockhash {
-        return Err(ErrorCode::Busy);
+    if final_info.chain != info.chain {
+        return Err(ErrorCode::NetworkMismatch);
     }
-    result.state = if info.initialblockdownload {
+    result.state = if info.initialblockdownload || final_info.initialblockdownload {
         ConnectionState::Syncing
     } else {
         ConnectionState::Connected
