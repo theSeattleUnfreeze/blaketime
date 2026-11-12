@@ -18,8 +18,24 @@ export function useDisplay() {
   const [preferences, setPreferences] = useState(load);
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = () => {
+      setNow(Date.now());
+      timer = setTimeout(tick, 1000 - (Date.now() % 1000));
+    };
+    const wake = () => setNow(Date.now());
+    timer = setTimeout(tick, 1000 - (Date.now() % 1000));
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("focus", wake);
+    window.addEventListener("pageshow", wake);
+    window.addEventListener("online", wake);
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("focus", wake);
+      window.removeEventListener("pageshow", wake);
+      window.removeEventListener("online", wake);
+    };
   }, []);
   useEffect(() => {
     try {

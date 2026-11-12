@@ -4,17 +4,26 @@ import { MetricPanels } from "./components/MetricPanels";
 import { NodeSettings } from "./components/NodeSettings";
 import { StatusBanner } from "./components/StatusBanner";
 import { client } from "./transport";
-import { useDashboard } from "./use-dashboard";
+import {
+  applyFreshness,
+  receivedStaleAfterMs,
+  useDashboard,
+} from "./use-dashboard";
 import { useDisplay } from "./use-display";
-import { clockParts } from "./format";
-import { locale, t } from "./messages";
+import { clockParts, timestamp } from "./format";
+import { t } from "./messages";
 export function App() {
-  const { snapshot, info, error, refresh, needsReload } = useDashboard(client);
+  const { snapshot, info, error, refresh, needsReload, receivedAt } =
+    useDashboard(client);
   const { preferences, setPreferences, now } = useDisplay();
   const [settings, setSettings] = useState(false);
   const clock = clockParts(now, preferences);
-  const network = snapshot?.network;
-  const state = error ? "disconnected" : (snapshot?.state ?? "connecting");
+  const live = applyFreshness(snapshot, now, receivedAt);
+  const network = live?.network;
+  const state =
+    error && (receivedAt == null || now - receivedAt >= receivedStaleAfterMs)
+      ? "disconnected"
+      : (live?.state ?? "connecting");
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -35,7 +44,7 @@ export function App() {
         </nav>
       </header>
       <StatusBanner
-        snapshot={snapshot}
+        snapshot={live}
         error={error}
         desktop={info?.desktop ?? false}
         needsReload={needsReload}
@@ -52,16 +61,16 @@ export function App() {
                 : "—"}
             </span>
             <span className="pow-badge">
-              {snapshot?.chain
+              {live?.chain
                 ? t(
-                    snapshot.chain.tip.headerVersion === 2
+                    live.chain.tip.headerVersion === 2
                       ? "chain.active"
                       : "chain.preActivation",
                   )
                 : ""}
             </span>
           </div>
-          <ChainClock snapshot={snapshot} now={now} />
+          <ChainClock snapshot={live} now={now} />
           <div className="calendar">
             <time className="wall-clock">{clock.time}</time>
             <div className="calendar-date">
@@ -75,20 +84,16 @@ export function App() {
             <i />
           </div>
         </section>
-        <MetricPanels snapshot={snapshot} now={now} />
+        <MetricPanels snapshot={live} />
       </main>
       <footer className="app-footer">
         <span>
           {t("chain.label")} / {t("chain.blake2b")}
         </span>
         <span>
-          {snapshot?.updatedAt
+          {live?.updatedAt
             ? t("status.lastUpdated", {
-                time: new Intl.DateTimeFormat(locale, {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  second: "2-digit",
-                }).format(snapshot.updatedAt * 1000),
+                time: timestamp(live.updatedAt, now, preferences),
               })
             : t(`status.${state}`)}
         </span>
@@ -96,7 +101,7 @@ export function App() {
       {settings && (
         <NodeSettings
           info={info}
-          snapshot={snapshot}
+          snapshot={live}
           client={client}
           close={() => setSettings(false)}
           refresh={refresh}
