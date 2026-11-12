@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "node": {
+    "url": "http://127.0.0.1:48332",
+    "network": "testnet4",
+    "label": "Knots node",
+    "auth": { "type": "cookie", "file": "/path/to/testnet4/.cookie" },
+    "allowInsecureRpc": false
+  },
+  "server": {
+    "bind": "127.0.0.1:3000",
+    "allowedHosts": ["127.0.0.1:3000", "localhost:3000"]
+  }
+}

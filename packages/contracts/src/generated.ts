@@ -1,0 +1,9 @@
+export type ErrorCode = "invalidConfig" | "networkMismatch" | "unsupported" | "auth" | "permission" | "unreachable" | "invalidResponse" | "busy";
+export type ConnectionState = "notConfigured" | "connecting" | "connected" | "syncing" | "stale" | "disconnected";
+export type AppInfo = { version: string, commit: string, apiVersion: number, desktop: boolean, updatesEnabled: boolean, };
+export type Block = { hash: string, height: number, time: number, headerVersion: number, difficulty: number, };
+export type ChainSnapshot = { tip: Block, activationHeight: number, halvingProgress: number, nextHalving: number, untilHalving: number, retargetProgress: number | null, untilRetarget: number | null, subsidySats: string | null, feeSats: string | null, transactions: number | null, sizeBytes: number | null, hashrate: number | null, averageInterval: number | null, sampleCount: number, recent: Array<Block>, };
+export type Mempool = { count: number, virtualBytes: number, memoryBytes: number, memoryLimit: number, minimumFee: number, updatedAt: number, };
+export type FeeEstimate = { target: number, satsPerVbyte: number, updatedAt: number, };
+export type Peers = { count: number, updatedAt: number, };
+export type Snapshot = { state: ConnectionState, error: ErrorCode | null, label: string, network: string | null, updatedAt: number | null, chain: ChainSnapshot | null, mempool: Mempool | null, fees: Array<FeeEstimate>, peers: Peers | null, };

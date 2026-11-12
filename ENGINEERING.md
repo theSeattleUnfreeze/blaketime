@@ -26,7 +26,9 @@ The approved product is an original circular Knots chain dashboard for web and s
 - GitHub currently lacks authentication for the intended pseudonymous publishing account. Public repository creation, pushes, and stacked PRs are blocked pending maintainer authentication.
 - Apple/Windows signing and production updater identity/key/source are not configured. Public signed releases remain blocked.
 - No real Knots node has been contacted; live-node acceptance is pending.
-- Implementation/test results will be added per slice. A planned gate is not a passing result.
+- Foundation: `cargo test --workspace` passed 9 tests; `cargo clippy --workspace --all-targets -- -D warnings` passed. Coverage currently includes config rejection/relative paths, monetary conversions, epoch boundaries, PoW sample boundaries, rollback/pre-activation RPC snapshots, request-ID/network mismatch, and HTTP host/origin/method boundaries.
+- `npm audit` against the HTTPS public registry reported zero vulnerabilities after installation. jsdom 30 required a newer Node minor; selected compatible jsdom 27.4.0 instead. Direct dependency release dates were checked before installation. Transitive dependencies remain lockfile-pinned and need ongoing audit.
+- Workspace frontend commands are scaffolded in the foundation; their UI tests/build land in the next stack slice. A planned gate is not a passing result.
 
 ## Planned stack
 
