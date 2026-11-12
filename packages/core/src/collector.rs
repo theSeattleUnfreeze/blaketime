@@ -39,34 +39,37 @@ impl NodeService {
             tokio::spawn(async move {
                 let mut failures = 0_u32;
                 loop {
+                    if *stopped.borrow() {
+                        break;
+                    }
                     let previous = data.read().await.clone();
+                    let cycle = tokio::spawn({
+                        let client = client.clone();
+                        async move { collect(&client, &previous, now()).await }
+                    });
+                    let abort = cycle.abort_handle();
                     let response = tokio::select! {
-                        _ = stopped.changed() => break,
-                        result = collect(&client,&previous,now()) => result,
+                        _ = stopped.changed() => {
+                            abort.abort();
+                            break;
+                        }
+                        joined = cycle => joined,
                     };
                     match response {
-                        Ok(next) => {
-                            *data.write().await = next;
+                        Ok(Ok(next)) => {
+                            *data.write().await = stamp_snapshot(next, now());
                             failures = 0;
                         }
-                        Err(ErrorCode::Busy) => {
+                        Ok(Err(ErrorCode::Busy)) => {
                             failures = 0;
                         }
-                        Err(error) => {
+                        Ok(Err(error)) => {
                             failures = failures.saturating_add(1);
-                            let mut state = data.write().await;
-                            if matches!(error, ErrorCode::NetworkMismatch | ErrorCode::Unsupported)
-                            {
-                                state.chain = None;
-                                state.mempool = None;
-                                state.peers = None;
-                                state.fees.clear();
-                                state.updated_at = None;
-                            }
-                            state.error = Some(error);
-                            if state.updated_at.is_none() {
-                                state.state = ConnectionState::Disconnected;
-                            }
+                            record_failure(&data, error).await;
+                        }
+                        Err(_panic) => {
+                            failures = failures.saturating_add(1);
+                            record_failure(&data, ErrorCode::Unreachable).await;
                         }
                     }
                     let delay = (5_u64 * (1_u64 << failures.min(4))).min(60);
@@ -114,6 +117,45 @@ impl Drop for NodeService {
     }
 }
 
+fn stamp_snapshot(mut next: Snapshot, stamped: u64) -> Snapshot {
+    let stamped = next
+        .updated_at
+        .map_or(stamped, |previous| stamped.max(previous));
+    if let Some(previous) = next.updated_at {
+        let carry = |value: &mut u64| {
+            if *value == previous {
+                *value = stamped;
+            }
+        };
+        if let Some(mempool) = next.mempool.as_mut() {
+            carry(&mut mempool.updated_at);
+        }
+        if let Some(peers) = next.peers.as_mut() {
+            carry(&mut peers.updated_at);
+        }
+        for fee in &mut next.fees {
+            carry(&mut fee.updated_at);
+        }
+    }
+    next.updated_at = Some(stamped);
+    next
+}
+
+async fn record_failure(data: &Arc<RwLock<Snapshot>>, error: ErrorCode) {
+    let mut state = data.write().await;
+    if matches!(error, ErrorCode::NetworkMismatch | ErrorCode::Unsupported) {
+        state.chain = None;
+        state.mempool = None;
+        state.peers = None;
+        state.fees.clear();
+        state.updated_at = None;
+    }
+    state.error = Some(error);
+    if state.updated_at.is_none() {
+        state.state = ConnectionState::Disconnected;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,5 +168,37 @@ mod tests {
         );
         assert!(service.check().await.is_ok());
         assert_eq!(service.check().await, Err(ErrorCode::Busy));
+    }
+
+    #[test]
+    fn publish_time_keeps_fresh_samples_and_ages_older_ones() {
+        let mut snapshot = Snapshot::empty();
+        snapshot.updated_at = Some(1_000);
+        snapshot.mempool = Some(Mempool {
+            count: 2,
+            virtual_bytes: 10.0,
+            memory_bytes: 20.0,
+            memory_limit: 30.0,
+            minimum_fee: 1.0,
+            updated_at: 1_000,
+        });
+        snapshot.peers = Some(Peers {
+            count: 8,
+            updated_at: 900,
+        });
+        snapshot.fees.push(FeeEstimate {
+            target: 2,
+            sats_per_vbyte: 1.0,
+            updated_at: 1_000,
+        });
+        let published = stamp_snapshot(snapshot, 1_040);
+        assert_eq!(published.updated_at, Some(1_040));
+        assert_eq!(published.mempool.unwrap().updated_at, 1_040);
+        assert_eq!(published.fees[0].updated_at, 1_040);
+        assert_eq!(published.peers.unwrap().updated_at, 900);
+        let mut backward = Snapshot::empty();
+        backward.updated_at = Some(5_000);
+        let held = stamp_snapshot(backward, 4_000);
+        assert_eq!(held.updated_at, Some(5_000));
     }
 }
